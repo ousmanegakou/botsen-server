@@ -11343,6 +11343,501 @@ app.delete('/chat/memory/:sid', (req, res) => {
 
 // FIN BLOC v10.7 ────────────────────────────────────────────
 
+// ════════════════════════════════════════════════════════════
+// 🧠 INTELLIGENCE SECTORIELLE — ajoute en fin de server.js
+// Pour chaque secteur, le bot connaît les questions types,
+// comment y répondre, les règles métier, les relances.
+// ════════════════════════════════════════════════════════════
+ 
+const SECTOR_INTELLIGENCE = {
+ 
+  banque: {
+    label: 'Banque',
+    intents: [
+      { id:'horaires',      triggers:['heure','ouvert','fermé','horaire','samedi'] },
+      { id:'agence_proche', triggers:['agence','proche','adresse','où'] },
+      { id:'carte_perdue',  triggers:['carte','bloqué','perdu','volé','opposition','fraude'] },
+      { id:'ouvrir_compte', triggers:['ouvrir','créer','nouveau compte'] },
+      { id:'pret',          triggers:['prêt','crédit','emprunt','financement'] },
+      { id:'frais',         triggers:['frais','commission','tarif'] },
+      { id:'virement',      triggers:['virement','transfert','wave','mobile money'] },
+      { id:'solde',         triggers:['solde','consulter compte','relevé'] },
+      { id:'reclamation',   triggers:['plainte','problème','réclamation','litige'] },
+    ],
+    responses: {
+      horaires: 'Donne horaires (bot.horaires). Mention week-end + jours fériés.',
+      agence_proche: 'Demande VILLE/QUARTIER, puis indique 2-3 agences proches.',
+      carte_perdue: '🚨 URGENT. Numéro opposition 24/7 IMMÉDIATEMENT. Insiste sur urgence.',
+      ouvrir_compte: 'Liste pièces (CNI, justif domicile, photo, dépôt). Propose RDV agence.',
+      pret: 'Demande montant, durée, motif. Dossier à étudier. JAMAIS promettre accord.',
+      frais: 'Tarifs (tenue compte, retrait DAB, virement). Sinon grille officielle.',
+      virement: 'Redirige vers app mobile ou agence. JAMAIS demander RIB ni initier.',
+      solde: 'TU NE PEUX PAS donner solde. Redirige app officielle, USSD, agence.',
+      reclamation: 'Demande motif, agence, date. Ticket créé. Délai: 30 jours.',
+    },
+    rules: [
+      '❌ JAMAIS demander mot de passe, PIN, code SMS, RIB, CVV',
+      '❌ JAMAIS effectuer transaction (virement, retrait, opposition)',
+      '❌ JAMAIS donner solde sans authentification forte',
+      '✅ Carte perdue/fraude: numéro opposition 24/7 IMMÉDIATEMENT',
+      '✅ Confidentialité absolue',
+    ],
+    quick_replies: ['🕐 Horaires','📍 Agence proche','💳 Carte perdue','📂 Ouvrir compte','💰 Tarifs','📞 Contact'],
+    follow_ups: {
+      agence_proche:'Dans quel quartier êtes-vous ?',
+      ouvrir_compte:'Compte particulier ou entreprise ?',
+      pret:'Quel montant et pour quel projet ?',
+    },
+  },
+ 
+  boutique: {
+    label: 'Boutique',
+    intents: [
+      { id:'voir_produits', triggers:['produit','article','catalogue','que vendez','collection'] },
+      { id:'disponibilite', triggers:['dispo','stock','reste','rupture'] },
+      { id:'prix',          triggers:['prix','coût','combien'] },
+      { id:'taille_couleur',triggers:['taille','couleur','pointure'] },
+      { id:'livraison',     triggers:['livr','envoi','délai'] },
+      { id:'commander',     triggers:['commander','acheter','veux'] },
+      { id:'paiement',      triggers:['payer','wave','orange money','cash'] },
+      { id:'retour',        triggers:['retour','échange','rembourser'] },
+      { id:'horaires',      triggers:['heure','ouvert'] },
+      { id:'localisation',  triggers:['où','adresse','magasin'] },
+    ],
+    responses: {
+      voir_produits: 'Présente catalogue de manière attractive. Photos via cards si dispo.',
+      disponibilite: 'Vérifie stock. Si incertain, propose commande pour réserver.',
+      prix: 'Prix exact du produit. Liste variants. Mentionne promos en cours.',
+      taille_couleur: 'Liste variants. Si info absente, suggère contact magasin.',
+      livraison: 'Donne frais, zones, délai (bot.livraison_*). Sinon retrait magasin.',
+      commander: 'Flux: produit → quantité → infos client → récap → confirmation → paiement.',
+      paiement: 'Liste modes acceptés. Wave/OM: donne numéros. Mention livraison.',
+      retour: 'Demande n° commande, motif, photo si défaut. Politique retour 7-14j.',
+      horaires: 'bot.horaires. Jours fermés.',
+      localisation: 'bot.adresse + maps.',
+    },
+    rules: [
+      '✅ Toujours proposer photos quand produit mentionné',
+      '✅ Mentionner frais livraison AVANT confirmation finale',
+      '❌ Ne jamais inventer un produit absent du catalogue',
+      '❌ Ne jamais promettre délai livraison sans bot.livraison_delai défini',
+    ],
+    quick_replies: ['🛍️ Voir produits','📦 Commander','🚚 Livraison','💰 Tarifs','🕐 Horaires','📍 Adresse'],
+    follow_ups: {
+      voir_produits: 'Quel type de produit recherchez-vous ?',
+      livraison: 'Dans quelle zone êtes-vous ?',
+      commander: 'Quel produit souhaitez-vous ?',
+    },
+  },
+ 
+  restaurant: {
+    label: 'Restaurant',
+    intents: [
+      { id:'voir_menu',      triggers:['menu','carte','plat','spécialité'] },
+      { id:'plat_du_jour',   triggers:['plat du jour','aujourd','spécial'] },
+      { id:'commander',      triggers:['commander','livrer'] },
+      { id:'reserver_table', triggers:['réserver','table','place'] },
+      { id:'livraison',      triggers:['livr','délai','temps'] },
+      { id:'horaires',       triggers:['heure','ouvert','midi','soir'] },
+      { id:'allergies',      triggers:['allergie','gluten','halal','vegan','porc'] },
+      { id:'localisation',   triggers:['où','adresse','parking'] },
+      { id:'groupe',         triggers:['groupe','mariage','anniversaire','évènement'] },
+    ],
+    responses: {
+      voir_menu: 'Présente menu de manière appétissante. Mets en valeur spécialités.',
+      plat_du_jour: 'Donne plat du jour si dispo. Sinon propose 2-3 plats phares.',
+      commander: 'Flux: plat → quantité → suppléments → infos client → adresse → confirmation.',
+      reserver_table: 'Demande date, heure, nb personnes, nom, tél. Vérifie dispo.',
+      livraison: 'Délai 30-45 min typique. Zones + frais bot.livraison_*.',
+      horaires: 'bot.horaires. Distingue midi (12h-15h) et soir (19h-23h).',
+      allergies: '🚨 Allergie GRAVE: TOUJOURS proposer confirmation avec chef. Risque vital.',
+      localisation: 'bot.adresse + maps. Mentionne parking.',
+      groupe: 'Prise brief: date, nb invités, type événement, budget. Rappel commercial.',
+    },
+    rules: [
+      '✅ Allergie grave (arachide, fruits de mer): TOUJOURS confirmer avec le chef',
+      '✅ Pour événement: prévoir délai de préparation',
+      '❌ Ne jamais inventer un plat absent du menu',
+    ],
+    quick_replies: ['🍽️ Menu','📦 Commander','📅 Réserver table','🚚 Livraison','🕐 Horaires','📍 Adresse'],
+    follow_ups: {
+      voir_menu: 'Vous cherchez quoi en particulier ?',
+      reserver_table: 'Pour combien de personnes et quelle date ?',
+      groupe: 'Combien d\'invités et quelle date ?',
+    },
+  },
+ 
+  salon: {
+    label: 'Salon de beauté',
+    intents: [
+      { id:'prestations', triggers:['prestation','service','coiffure','manucure','maquillage'] },
+      { id:'prendre_rdv', triggers:['rdv','créneau','disponible','libre'] },
+      { id:'tarifs',      triggers:['prix','tarif','combien'] },
+      { id:'duree',       triggers:['durée','temps','combien de temps'] },
+      { id:'tresses',     triggers:['tresses','mèches','défrisage','extension','locks'] },
+      { id:'a_domicile',  triggers:['domicile','maison','venir chez'] },
+      { id:'enfants',     triggers:['enfant','bébé','fille'] },
+      { id:'horaires',    triggers:['heure','ouvert'] },
+    ],
+    responses: {
+      prestations: 'Liste prestations bot.catalogue avec prix ET durée.',
+      prendre_rdv: 'Flux RDV: prestation → date/heure → infos client → confirmation.',
+      tarifs: 'Prix précis si prestation mentionnée. Sinon liste principales.',
+      duree: 'Durée typique (coupe 30min, tresses 3-4h, mèches 2h).',
+      tresses: 'Confirme si proposé. Durée + prix. Mention RDV nécessaire.',
+      a_domicile: 'Confirme si dispo. Si oui: zones + frais.',
+      enfants: 'Confirme prestations enfants. Tarifs spéciaux possibles.',
+      horaires: 'bot.horaires + jours fermeture.',
+    },
+    rules: [
+      '✅ TOUJOURS donner la durée (essentiel pour s\'organiser)',
+      '✅ RDV forte demande (samedi, mariage): confirmer rapidement',
+      '✅ Prestations longues (>3h): suggérer arrivée à jeun + collation',
+      '❌ Ne jamais promettre résultat précis (chevelures différentes)',
+    ],
+    quick_replies: ['💇 Prestations','📅 Prendre RDV','💰 Tarifs','⏱️ Durées','📍 Adresse','📞 Contact'],
+    follow_ups: {
+      prestations: 'Vous cherchez quel type de prestation ?',
+      prendre_rdv: 'Quelle prestation et quel jour vous arrange ?',
+    },
+  },
+ 
+  pharmacie: {
+    label: 'Pharmacie',
+    intents: [
+      { id:'medicament', triggers:['médicament','avoir','disponible','paracétamol','doliprane'] },
+      { id:'garde',      triggers:['garde','nuit','urgence','dimanche'] },
+      { id:'horaires',   triggers:['heure','ouvert'] },
+      { id:'livraison',  triggers:['livr','apporter'] },
+      { id:'ordonnance', triggers:['ordonnance','prescription','docteur'] },
+      { id:'mutuelle',   triggers:['mutuelle','remboursement','ipres'] },
+      { id:'symptomes',  triggers:['fièvre','mal de tête','douleur','symptôme','malade'] },
+    ],
+    responses: {
+      medicament: 'Si dans catalogue: confirme dispo + prix. Sinon "je vérifie, contactez pharmacien".',
+      garde: 'Horaires garde si bot.pharmacie_garde. Sinon liste officielle.',
+      horaires: 'bot.horaires. Distingue ouvré/week-end. Garde 24/7 si applicable.',
+      livraison: 'Zones + frais + délai. Ordonnance requise: photo.',
+      ordonnance: 'Demande photo via WhatsApp. Confirme dispo + prix total avant livraison.',
+      mutuelle: 'Liste mutuelles acceptées. Pièces: carte mutuelle + ordonnance.',
+      symptomes: '🚨 NE JAMAIS donner conseil médical. Réponse: "Vos symptômes nécessitent avis professionnel. Consultez médecin ou parlez pharmacien. Urgence: SAMU 1515."',
+    },
+    rules: [
+      '❌ JAMAIS de conseil médical, JAMAIS de diagnostic',
+      '❌ JAMAIS recommander médicament éthique sans ordonnance',
+      '✅ Symptômes décrits: REDIRECTION vers pharmacien ou médecin',
+      '✅ Urgence médicale: SAMU 1515 IMMÉDIATEMENT',
+    ],
+    quick_replies: ['💊 Médicaments','🚨 Garde','🚚 Livraison','🕐 Horaires','📍 Adresse'],
+    follow_ups: {
+      medicament: 'Quel médicament cherchez-vous ?',
+      ordonnance: 'Pouvez-vous envoyer la photo de l\'ordonnance ?',
+    },
+  },
+ 
+  clinique: {
+    label: 'Clinique médicale',
+    intents: [
+      { id:'specialites', triggers:['spécialité','médecin','cardio','pédiatr','gyneco','dentiste'] },
+      { id:'prendre_rdv', triggers:['rdv','consulter','consultation','voir médecin'] },
+      { id:'urgences',    triggers:['urgence','urgent','grave','accident'] },
+      { id:'tarifs',      triggers:['prix','tarif','consultation'] },
+      { id:'mutuelle',    triggers:['mutuelle','tiers payant'] },
+      { id:'resultats',   triggers:['résultat','analyse','bilan'] },
+      { id:'symptomes',   triggers:['mal','douleur','fièvre','malade'] },
+    ],
+    responses: {
+      specialites: 'Liste spécialités. Médecin référent et horaires si dispo.',
+      prendre_rdv: 'Flux: spécialité → motif court → date/heure → infos patient.',
+      urgences: '🚨 Donne numéro et adresse direct. Sinon SAMU 1515. Douleur thoracique/AVC: 1515.',
+      tarifs: 'Tarifs par spécialité. Tiers payant possible avec mutuelle.',
+      mutuelle: 'Mutuelles acceptées. Documents: carte mutuelle + CNI.',
+      resultats: 'NE JAMAIS donner résultats dans le chat. Redirige secrétariat. Délais 24-72h.',
+      symptomes: '🚨 NE JAMAIS donner diagnostic. "RDV avec généraliste ?" Si urgence: 1515.',
+    },
+    rules: [
+      '❌ JAMAIS de diagnostic, JAMAIS de prescription, JAMAIS d\'interprétation analyses',
+      '❌ JAMAIS donner résultats dans le chat (confidentialité)',
+      '❌ JAMAIS confirmer si patient suivi ou non (secret médical)',
+      '✅ Symptômes: REDIRECTION OBLIGATOIRE vers consultation',
+      '✅ Urgences (thoracique, AVC, hémorragie, malaise): SAMU 1515',
+    ],
+    quick_replies: ['🏥 Spécialités','📅 Prendre RDV','🚨 Urgences','💰 Tarifs','🏛️ Mutuelles'],
+    follow_ups: {
+      specialites: 'Quelle spécialité vous intéresse ?',
+      prendre_rdv: 'Pour quelle spécialité et quel jour ?',
+    },
+  },
+ 
+  hotel: {
+    label: 'Hôtel',
+    intents: [
+      { id:'reserver',     triggers:['réserver','chambre','disponible','nuit'] },
+      { id:'tarifs',       triggers:['prix','tarif','nuit'] },
+      { id:'types',        triggers:['type','standard','deluxe','suite','double'] },
+      { id:'services',     triggers:['wifi','piscine','parking','petit-déj','spa'] },
+      { id:'check_in_out', triggers:['check','arriver','partir','départ'] },
+      { id:'annulation',   triggers:['annuler','rembourser'] },
+      { id:'groupe',       triggers:['groupe','mariage','séminaire'] },
+      { id:'transport',    triggers:['navette','aéroport','taxi'] },
+    ],
+    responses: {
+      reserver: 'Demande dates (arrivée+départ), nb personnes, type chambre. Récap avec total.',
+      tarifs: 'Prix par nuit selon type. Précise inclus/non inclus.',
+      types: 'Liste types (bot.catalogue) avec prix par nuit et capacité.',
+      services: 'Liste services inclus. Heures accès si applicable.',
+      check_in_out: 'Check-in 14h-15h, check-out 11h-12h. Late check-out à confirmer.',
+      annulation: 'Gratuite jusqu\'à X jours avant. Demande date résa.',
+      groupe: 'Groupes 8+ chambres: tarifs négociés, commercial rappelle.',
+      transport: 'Si navette aéroport: confirme service + horaires + prix.',
+    },
+    rules: [
+      '✅ Confirmer dates exactes AVANT validation',
+      '✅ Préciser inclus/non inclus dans le prix',
+      '✅ Politique annulation claire dès le début',
+      '❌ Ne jamais bloquer chambre sans dépôt',
+    ],
+    quick_replies: ['🏨 Chambres','📅 Réserver','💰 Tarifs','🍳 Services','📍 Adresse'],
+    follow_ups: {
+      reserver: 'Pour quelles dates et combien de personnes ?',
+      tarifs: 'Pour quelle date et quel type de chambre ?',
+    },
+  },
+ 
+  transport: {
+    label: 'Taxi / Transport',
+    intents: [
+      { id:'reserver_course', triggers:['réserver','course','taxi','venir','chercher'] },
+      { id:'tarif',           triggers:['prix','tarif','combien'] },
+      { id:'zones',           triggers:['zone','aller','jusqu'] },
+      { id:'disponibilite',   triggers:['libre','maintenant','urgent'] },
+      { id:'longue_distance', triggers:['saint-louis','thiès','mbour','voyage'] },
+      { id:'aeroport',        triggers:['aéroport','aibd','avion'] },
+    ],
+    responses: {
+      reserver_course: 'Demande lieu prise en charge, destination, heure, nb passagers. Tarif estimé.',
+      tarif: 'Si lieux précisés: estimation. Sinon demande départ+destination.',
+      zones: 'bot.zones_couverture. Hors zone: tarif spécial ou refus.',
+      disponibilite: 'Dispo immédiate si 24/7. Sinon heures service.',
+      longue_distance: 'Inter-urbain: 25-100K FCFA. Confirmer chauffeur dispo.',
+      aeroport: 'Navette AIBD: 15-25K selon zone Dakar. Confirme heure vol.',
+    },
+    rules: [
+      '✅ TOUJOURS confirmer lieu prise en charge ET destination AVANT tarif',
+      '✅ Mentionner majorations heure pointe/nuit',
+      '✅ Pour vols: marge 1h30 avant décollage',
+      '❌ Ne jamais accepter course sans confirmer dispo chauffeur',
+    ],
+    quick_replies: ['🚖 Réserver','💰 Tarifs','✈️ Aéroport','📍 Zones'],
+    follow_ups: {
+      reserver_course: 'D\'où à où, et pour quelle heure ?',
+      aeroport: 'Vol au départ ou à l\'arrivée, quelle heure ?',
+    },
+  },
+ 
+  'auto-ecole': {
+    label: 'Auto-école',
+    intents: [
+      { id:'forfaits',    triggers:['forfait','pack','formule'] },
+      { id:'permis_b',    triggers:['permis b','voiture'] },
+      { id:'permis_a',    triggers:['permis a','moto'] },
+      { id:'inscription', triggers:['inscrire','commencer'] },
+      { id:'documents',   triggers:['document','pièce','cni'] },
+      { id:'tarifs',      triggers:['prix','tarif'] },
+      { id:'duree',       triggers:['durée','combien de temps','rapide'] },
+      { id:'code',        triggers:['code','théorie','examen'] },
+    ],
+    responses: {
+      forfaits: 'Liste forfaits bot.catalogue avec contenu (code+heures) et prix.',
+      permis_b: 'Forfait B: 120-180K (code + 20h conduite). Délais examens.',
+      permis_a: 'Forfait moto si dispo. Différences A1/A2/A.',
+      inscription: 'Demande type permis, urgence, pré-requis. Propose RDV.',
+      documents: 'CNI + photocopie, 4 photos, certificat médical, justif domicile.',
+      tarifs: 'Code seul 30-50K, B complet 120-180K. Échelonné possible.',
+      duree: 'B classique 2-4 mois, code 1-2 mois, accéléré 2-3 semaines.',
+      code: 'Cours théoriques. Examen blanc obligatoire. Délai code 2-4 sem.',
+    },
+    rules: [
+      '✅ TOUJOURS lister documents requis dès le début',
+      '✅ Prévenir des délais administratifs',
+      '❌ Jamais garantir date d\'examen',
+      '❌ Jamais promettre réussite 100%',
+    ],
+    quick_replies: ['🚗 Forfaits','📝 S\'inscrire','💰 Tarifs','📋 Documents'],
+    follow_ups: {
+      forfaits: 'Quel permis vous intéresse — voiture, moto ?',
+      inscription: 'Vous voulez quel type de permis ?',
+    },
+  },
+ 
+  service: {
+    label: 'Artisan / Service pro',
+    intents: [
+      { id:'devis',        triggers:['devis','estimation','prix','coût'] },
+      { id:'intervention', triggers:['venir','intervenir','réparer','panne'] },
+      { id:'urgence',      triggers:['urgent','fuite','cassé','maintenant'] },
+      { id:'specialite',   triggers:['plomberie','électricité','menuiserie','peinture'] },
+      { id:'zone',         triggers:['zone','venir chez','dakar'] },
+      { id:'garantie',     triggers:['garantie','sav'] },
+      { id:'rdv_chantier', triggers:['rdv','visite','évaluer'] },
+    ],
+    responses: {
+      devis: 'Demande type travail, photos, dimensions, adresse. RDV gratuit. Délai 24-48h.',
+      intervention: 'Demande problème, urgence, adresse, photos. Estime délai.',
+      urgence: '🚨 Urgences: adresse + photo, dispo <2h, majoration possible.',
+      specialite: 'Confirme si traitée. Sinon recommande confrère honnêtement.',
+      zone: 'bot.zones_intervention. Au-delà: frais déplacement.',
+      garantie: 'Main d\'œuvre 1 an, garantie fabricant matériaux.',
+      rdv_chantier: 'Flux RDV: date, adresse, nature travaux.',
+    },
+    rules: [
+      '✅ Devis: photos + dimensions + adresse OBLIGATOIRES',
+      '✅ Urgences: délai d\'intervention réaliste',
+      '✅ Acompte 30-50% AVANT démarrage',
+      '❌ Jamais prix ferme sans visite si travaux complexes',
+    ],
+    quick_replies: ['📋 Devis','🚨 Urgence','📅 RDV chantier','🔧 Prestations'],
+    follow_ups: {
+      devis: 'Quel type de travail et où ?',
+      urgence: 'Décrivez la situation et votre adresse',
+    },
+  },
+ 
+  education: {
+    label: 'École / Formation',
+    intents: [
+      { id:'formations',     triggers:['formation','cours','programme'] },
+      { id:'inscription',    triggers:['inscrire','admission'] },
+      { id:'tarifs',         triggers:['prix','frais','scolarité','mensualité'] },
+      { id:'duree',          triggers:['durée','mois','année'] },
+      { id:'certifications', triggers:['diplôme','certificat','reconnu'] },
+      { id:'horaires_cours', triggers:['heure','cours','soir','week-end'] },
+      { id:'documents',      triggers:['document','bulletin'] },
+      { id:'debouches',      triggers:['débouché','emploi','métier','carrière'] },
+    ],
+    responses: {
+      formations: 'Liste formations avec durée, prix, certification, débouchés.',
+      inscription: 'Demande formation, niveau actuel. Liste documents + RDV info.',
+      tarifs: 'Prix par formation. Comptant vs échéancier mensuel.',
+      duree: 'Certificat 3-6 mois, licence 1-3 ans, formation pro 3-12 mois.',
+      certifications: 'Diplôme État, attestation interne, ou certif internationale.',
+      horaires_cours: 'Sessions jour, soir, week-end, à distance. Volume/semaine.',
+      documents: 'CNI + photocopie, 4 photos, diplôme précédent, justif domicile.',
+      debouches: '3-5 métiers visés. Si bot.taux_insertion: mentionner.',
+    },
+    rules: [
+      '✅ TOUJOURS donner prix + durée + certification',
+      '✅ Confirmer reconnaissance État pour transparence',
+      '✅ Modalités paiement échelonné (important localement)',
+      '❌ Jamais promettre emploi garanti',
+    ],
+    quick_replies: ['🎓 Formations','📝 S\'inscrire','💰 Tarifs','📅 Calendrier'],
+    follow_ups: {
+      formations: 'Quel domaine vous intéresse ?',
+      inscription: 'Quelle formation souhaitez-vous ?',
+    },
+  },
+ 
+  immobilier: {
+    label: 'Immobilier',
+    intents: [
+      { id:'biens',      triggers:['bien','maison','villa','appartement','studio','location','vente'] },
+      { id:'visite',     triggers:['visite','voir','rdv'] },
+      { id:'prix',       triggers:['prix','loyer'] },
+      { id:'zone',       triggers:['quartier','almadies','plateau','mermoz'] },
+      { id:'caution',    triggers:['caution','avance','garantie'] },
+      { id:'documents',  triggers:['document','fiche paie'] },
+      { id:'expatries',  triggers:['diaspora','étranger','france','usa'] },
+    ],
+    responses: {
+      biens: 'Demande location/achat, type, quartier, budget. Liste correspondants.',
+      visite: 'Créneaux dispos. Nom + tél + bien. Rappel veille.',
+      prix: 'Prix exact si bien identifié. Sinon fourchette par quartier.',
+      zone: 'Confirme bien dispo dans quartier. Alternatives proches.',
+      caution: '2-3 mois caution + 1 mois avance. Restituée si état lieux OK.',
+      documents: 'CNI + 3 fiches paie + attestation + garant si revenus <3x loyer.',
+      expatries: 'Service diaspora: gestion à distance, vidéo, signature numérique.',
+    },
+    rules: [
+      '✅ TOUJOURS confirmer bien encore dispo AVANT visite',
+      '✅ Transparence sur frais agence + caution + avance',
+      '✅ Diaspora: options paiement adaptées',
+      '❌ Jamais demander acompte sans contrat signé',
+    ],
+    quick_replies: ['🏠 Biens','📅 Visiter','💰 Tarifs','📍 Quartiers'],
+    follow_ups: {
+      biens: 'Location ou achat ? Quel type et quel quartier ?',
+      visite: 'Pour quel bien et quel jour ?',
+    },
+  },
+ 
+};
+ 
+// ─── Helpers ───────────────────────────────────────────────
+ 
+function getSectorIntelligenceBlock(niche, bot) {
+  const s = SECTOR_INTELLIGENCE[niche];
+  if (!s) return '';
+  const intentsList = s.intents.map(i => '- ' + i.id + ': [' + i.triggers.slice(0,4).join(', ') + '…]').join('\n');
+  const responsesList = Object.entries(s.responses).map(([k,v]) => '[' + k + '] → ' + v).join('\n');
+  const rulesList = s.rules.join('\n');
+  const followUpList = Object.entries(s.follow_ups || {}).map(([k,v]) => '- Si "' + k + '": "' + v + '"').join('\n');
+ 
+  return '\n\n═══════════════════════════════════════════════\n'
+    + '🧠 INTELLIGENCE SECTORIELLE — ' + s.label.toUpperCase() + '\n'
+    + '═══════════════════════════════════════════════\n\n'
+    + 'QUESTIONS TYPIQUES dans ce secteur:\n' + intentsList + '\n\n'
+    + 'COMMENT RÉPONDRE:\n' + responsesList + '\n\n'
+    + 'RÈGLES MÉTIER CRITIQUES (à respecter ABSOLUMENT):\n' + rulesList + '\n\n'
+    + 'QUESTIONS DE RELANCE:\n' + followUpList + '\n\n'
+    + '⚠️ Croise toujours avec les données du bot (catalogue, horaires, adresse).\n'
+    + '═══════════════════════════════════════════════\n';
+}
+ 
+function getSectorQuickReplies(niche) {
+  return (SECTOR_INTELLIGENCE[niche] || {}).quick_replies || null;
+}
+ 
+function detectSectorIntent(message, niche) {
+  const s = SECTOR_INTELLIGENCE[niche];
+  if (!s || !message) return null;
+  const lower = message.toLowerCase();
+  for (const intent of s.intents) {
+    for (const trigger of intent.triggers) {
+      if (lower.includes(trigger.toLowerCase())) {
+        return { intent: intent.id, sector: niche, matched: trigger };
+      }
+    }
+  }
+  return null;
+}
+ 
+// ─── OVERRIDE des fonctions existantes (au runtime, pas besoin de toucher au code original) ───
+ 
+// Override makePromptSmart : ajoute l'intelligence sectorielle au prompt
+if (typeof makePromptSmart === 'function') {
+  const __origMakePromptSmart = makePromptSmart;
+  makePromptSmart = function(bot, sid) {
+    const original = __origMakePromptSmart(bot, sid);
+    const sectorBlock = getSectorIntelligenceBlock(bot && bot.niche, bot);
+    return original + sectorBlock;
+  };
+  console.log('✅ makePromptSmart enrichi avec Sector Intelligence');
+}
+ 
+// Override getQR : priorise les quick replies sectoriels intelligents
+if (typeof getQR === 'function') {
+  const __origGetQR = getQR;
+  getQR = function(n) {
+    const dynamic = getSectorQuickReplies(n);
+    if (dynamic) return dynamic;
+    return __origGetQR(n);
+  };
+  console.log('✅ getQR enrichi avec quick replies sectoriels');
+}
+ 
+console.log('🧠 Sector Intelligence chargée — ' + Object.keys(SECTOR_INTELLIGENCE).length + ' secteurs couverts');
+
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
