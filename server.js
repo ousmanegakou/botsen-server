@@ -558,6 +558,38 @@ function detectLang(text) {
   return 'Autre';
 }
 
+// ─── LECTURE D'UN MONTANT DANS UN TEXTE ──────────────────────
+// Sert de filet quand le modèle n'a pas isolé le total :
+// "Café arabica = 5 000 FCFA + livraison 1 000 FCFA = total 6 000 FCFA" → 6000
+function montantDepuisTexte(texte) {
+  if (!texte) return 0;
+  const s = String(texte);
+
+  // 1) La mention explicite "total X FCFA" fait foi
+  let m = s.match(/total\s*[:=]?\s*([0-9][0-9\s.,]*)\s*(?:fcfa|cfa|f\b)/i);
+  if (m) {
+    const n = parseInt(m[1].replace(/[\s.,]/g, ''), 10);
+    if (n > 0) return n;
+  }
+
+  // 2) Sinon, le dernier montant cité est le total dans "X + Y = Z"
+  const tous = [...s.matchAll(/([0-9][0-9\s.,]*)\s*(?:fcfa|cfa|f\b)/gi)];
+  if (tous.length) {
+    const n = parseInt(tous[tous.length - 1][1].replace(/[\s.,]/g, ''), 10);
+    if (n > 0) return n;
+  }
+
+  return 0;
+}
+
+// ─── VALIDATION D'UN NUMÉRO SÉNÉGALAIS ───────────────────────
+// Empêche l'enregistrement d'un numéro inventé par le modèle.
+function telSenegalValide(tel) {
+  if (!tel) return false;
+  const net = String(tel).replace(/[\s+\-().]/g, '');
+  return /^(221)?7[05678][0-9]{7}$/.test(net);
+}
+
 // ─── NETTOYAGE DES RÉPONSES ──────────────────────────────────
 // Retire les marqueurs qui trahissent une IA et que le modèle
 // produit parfois malgré les consignes du prompt.
@@ -3370,7 +3402,14 @@ async function createOrderFromConfirmation(botId, sessionId, total, bot, recapTe
     };
 
     // 🎁 Appliquer le code promo si fourni
+    // Le modèle ne renvoie pas toujours un montant exploitable : dans ce cas
+    // on le relit depuis le texte de l'article ("… = total 6 000 FCFA").
+    // Sans ce filet, la commande partait à 0 FCFA dans l'email et le tableau de bord.
     let originalTotal = total || 0;
+    if (!originalTotal && finalInfos.article) {
+      originalTotal = montantDepuisTexte(finalInfos.article);
+      if (originalTotal) console.log(`Total relu depuis l'article : ${originalTotal} FCFA`);
+    }
     let promoReduction = 0;
     let promoCode = null;
     if (promo && originalTotal > 0) {
@@ -5824,7 +5863,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
           <img id="cat-new-img-preview" src="" style="width:50px;height:50px;border-radius:8px;object-fit:cover;display:none;border:1px solid #d1e5d8"/>
           <label style="padding:7px 12px;background:#fff;border:1.5px dashed #d1e5d8;border-radius:8px;font-size:12px;color:#5a7060;cursor:pointer">
-            📷 Photo (optionnelle)
+            Photo (optionnelle)
             <input type="file" accept="image/*" style="display:none" onchange="catUploadNewImg(this)"/>
           </label>
           <input id="cat-new-emoji" placeholder="🛍️" maxlength="2" style="width:50px;padding:9px;border:1.5px solid #d1e5d8;border-radius:8px;font-size:18px;text-align:center;font-family:inherit"/>
@@ -6836,12 +6875,124 @@ textarea{min-height:80px;resize:vertical}
 .rb{flex:1;min-width:130px;padding:11px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;border:none}
 .rb-g{background:#00c875;color:#fff}.rb-o{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2)}
 @media(max-width:480px){.row2{grid-template-columns:1fr}.niches{grid-template-columns:repeat(2,1fr)}.cat-item{grid-template-columns:1fr 70px auto}}
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM — création de bot
+   Neutres froids, accent vert réservé aux actions et à l'étape
+   en cours. Bandeau sombre remplacé par un en-tête blanc.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --s-bg:#FFFFFF; --s-sunken:#F8F9FA; --s-hover:#F1F3F4; --s-active:#E8EAED;
+  --s-tx1:#1A1D1F; --s-tx2:#5F6368; --s-tx3:#8A9099;
+  --s-line:#E8EAED; --s-line2:#DADCE0;
+  --s-brand:#06A85A; --s-brand-tx:#04713C; --s-brand-tint:#EDF9F2;
+  --s-ez:cubic-bezier(.2,0,0,1);
+}
+body{background:var(--s-sunken);color:var(--s-tx1)}
+
+/* En-tête : blanc, ligne fine, plus de bandeau sombre */
+.hd{
+  background:var(--s-bg);border-bottom:1px solid var(--s-line);
+  padding:0 24px;height:64px;position:sticky;top:0;z-index:20;
+}
+.logo{font-size:17px;font-weight:600;color:var(--s-tx1);letter-spacing:-.02em}
+.logo span{color:var(--s-brand)}
+
+.wrap{max-width:680px;padding:40px 20px 64px}
+h1{font-size:26px;font-weight:600;color:var(--s-tx1);letter-spacing:-.03em;line-height:1.15;margin-bottom:8px}
+.sub{font-size:14.5px;color:var(--s-tx2);margin-bottom:32px;line-height:1.6}
+
+/* Cartes d'étape */
+.card{
+  background:var(--s-bg);border:1px solid var(--s-line);border-radius:12px;
+  padding:24px;margin-bottom:16px;box-shadow:none;
+  transition:border-color 200ms var(--s-ez);
+}
+.card:focus-within{border-color:var(--s-line2)}
+.ctitle{font-size:15px;font-weight:600;color:var(--s-tx1);letter-spacing:-.015em;margin-bottom:20px;gap:11px}
+.num{width:24px;height:24px;background:var(--s-tx1);color:#fff;font-size:12px;font-weight:600;border-radius:999px}
+
+/* Champs */
+label{font-size:12.5px;font-weight:500;color:var(--s-tx2);margin-bottom:7px;letter-spacing:0}
+input,select,textarea{
+  border:1px solid var(--s-line2);border-radius:8px;
+  padding:10px 12px;font-size:14px;color:var(--s-tx1);background:var(--s-bg);
+  transition:border-color 150ms var(--s-ez), box-shadow 150ms var(--s-ez);
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--s-brand);box-shadow:0 0 0 3px rgba(6,168,90,.12);
+}
+input::placeholder,textarea::placeholder{color:var(--s-tx3)}
+
+/* Choix de secteur — le libellé suffit, les pictogrammes sont masqués */
+.ne{display:none}
+.nn{font-size:13px;line-height:1.3}
+.niches{gap:9px}
+.n{
+  border:1px solid var(--s-line2);border-radius:8px;background:var(--s-bg);
+  color:var(--s-tx2);font-size:13px;font-weight:450;padding:11px 8px;
+  transition:all 150ms var(--s-ez);
+}
+.n:hover{background:var(--s-hover);border-color:var(--s-tx3);color:var(--s-tx1)}
+.n.s{background:var(--s-brand-tint);border-color:var(--s-brand);color:var(--s-brand-tx);font-weight:550}
+
+/* Moyens de paiement */
+.pay-opt{
+  border:1px solid var(--s-line2);border-radius:8px;background:var(--s-bg);
+  color:var(--s-tx2);font-size:13.5px;font-weight:450;
+  transition:all 150ms var(--s-ez);
+}
+.pay-opt:hover{background:var(--s-hover)}
+.pay-opt.s{background:var(--s-brand-tint);border-color:var(--s-brand);color:var(--s-brand-tx);font-weight:550}
+
+/* Dépôt du logo */
+.upload-zone{
+  border:1.5px dashed var(--s-line2);border-radius:10px;background:var(--s-sunken);
+  color:var(--s-tx2);transition:all 180ms var(--s-ez);
+}
+.upload-zone:hover{border-color:var(--s-brand);background:var(--s-brand-tint)}
+.upload-progress{background:var(--s-active);border-radius:999px;height:4px}
+.upload-progress-bar{background:var(--s-brand);border-radius:999px}
+.upload-preview{border:1px solid var(--s-line);border-radius:8px}
+
+/* Catalogue */
+.cat-item{border:1px solid var(--s-line);border-radius:8px;background:var(--s-bg)}
+.cat-item-img,.cat-img-preview{border:1px solid var(--s-line);border-radius:6px}
+.cat-img-btn{border:1px solid var(--s-line2);border-radius:6px;background:var(--s-bg);color:var(--s-tx2);font-size:12.5px;font-weight:500}
+.cat-img-btn:hover{background:var(--s-hover);color:var(--s-tx1)}
+.add-cat{
+  border:1px dashed var(--s-line2);border-radius:8px;background:transparent;
+  color:var(--s-tx2);font-size:13.5px;font-weight:500;padding:11px;
+}
+.add-cat:hover{border-color:var(--s-brand);color:var(--s-brand-tx);background:var(--s-brand-tint)}
+
+/* Bouton d'envoi */
+.sbtn{
+  background:var(--s-tx1);color:#fff;border:none;border-radius:8px;
+  height:48px;font-size:15px;font-weight:550;letter-spacing:-.01em;
+  transition:background-color 150ms var(--s-ez),opacity 150ms var(--s-ez);
+}
+.sbtn:hover{background:#000}
+.sbtn:disabled{opacity:.5}
+
+/* Écran de résultat : fond clair au lieu de sombre */
+.res{background:var(--s-bg);border:1px solid var(--s-line);border-radius:12px;color:var(--s-tx1)}
+.rt{font-size:20px;font-weight:600;color:var(--s-tx1);letter-spacing:-.02em}
+.rl{font-size:11.5px;color:var(--s-tx3);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.rv{background:var(--s-sunken);border:1px solid var(--s-line);border-radius:8px;color:var(--s-tx1);font-size:13px}
+.cp{background:var(--s-bg);color:var(--s-tx2);border:1px solid var(--s-line2);border-radius:6px;font-size:12px;font-weight:500}
+.cp:hover{background:var(--s-hover);color:var(--s-tx1)}
+.rb{border-radius:8px;font-size:13.5px;font-weight:500;padding:12px}
+.rb-g{background:var(--s-tx1);color:#fff;border:1px solid var(--s-tx1)}
+.rb-g:hover{background:#000}
+.rb-o{background:var(--s-bg);color:var(--s-tx1);border:1px solid var(--s-line2)}
+.rb-o:hover{background:var(--s-hover)}
 </style>
 <link rel='stylesheet' href='/premium.css'></head>
 <body>
 <div class="hd"><div class="logo">Sama<span>Bot</span></div></div>
 <div class="wrap">
-  <h1>Créez votre bot IA 🤖</h1>
+  <h1>Créez votre assistant</h1>
   <p class="sub">Configurez votre assistant en 3 minutes. Sans technique.</p>
 
   <!-- 1 -->
@@ -6853,7 +7004,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="upload-zone" id="logo-zone">
         <input type="file" id="logo-file" accept="image/*" onchange="uploadLogo(this)"/>
         <div id="logo-placeholder">
-          <div style="font-size:28px;margin-bottom:6px">🖼️</div>
+          <div style="margin-bottom:8px;color:#8A9099"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
           <div style="font-size:13px;font-weight:600;color:#3a5040">Cliquez pour uploader votre logo</div>
           <div style="font-size:11px;color:#9ab0a0;margin-top:3px">JPG, PNG, WebP — max 5MB</div>
         </div>
@@ -6937,7 +7088,7 @@ textarea{min-height:80px;resize:vertical}
           <div class="cat-item-img">
             <img class="cat-img-preview" alt=""/>
             <div class="cat-img-btn">
-              📷 Photo
+              Photo
               <input type="file" accept="image/*" onchange="uploadCatImg(this)"/>
             </div>
             <span style="font-size:11px;color:#9ab0a0;margin-left:4px">Optionnel</span>
@@ -6954,11 +7105,11 @@ textarea{min-height:80px;resize:vertical}
     <div class="f">
       <label>Moyens acceptés</label>
       <div class="pay-opts">
-        <div class="pay-opt s" data-val="Wave" onclick="tPay(this)">💙 Wave</div>
-        <div class="pay-opt s" data-val="Orange Money" onclick="tPay(this)">🟠 Orange Money</div>
-        <div class="pay-opt s" data-val="Espèces" onclick="tPay(this)">💵 Espèces</div>
-        <div class="pay-opt" data-val="Free Money" onclick="tPay(this)">🟢 Free Money</div>
-        <div class="pay-opt" data-val="Carte bancaire" onclick="tPay(this)">💳 Carte</div>
+        <div class="pay-opt s" data-val="Wave" onclick="tPay(this)">Wave</div>
+        <div class="pay-opt s" data-val="Orange Money" onclick="tPay(this)">Orange Money</div>
+        <div class="pay-opt s" data-val="Espèces" onclick="tPay(this)">Espèces</div>
+        <div class="pay-opt" data-val="Free Money" onclick="tPay(this)">Free Money</div>
+        <div class="pay-opt" data-val="Carte bancaire" onclick="tPay(this)">Carte bancaire</div>
       </div>
     </div>
     <div class="row2">
@@ -6974,7 +7125,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="f"><label>WhatsApp notifs commandes</label><input id="notif" placeholder="+221 77 xxx xxxx"/></div>
       <div class="f"><label>Email notifications</label><input id="notif_email" type="email" placeholder="patron@monbusiness.com"/></div>
     </div>
-    <div class="f"><label style="color:#5a7060;font-size:11px">💡 Vous recevrez un email à chaque commande et RDV</label></div>
+    <div class="f"><label style="color:#8A9099;font-size:12px">Vous recevrez un email à chaque commande et chaque rendez-vous.</label></div>
     <div class="f">
       <label>Couleur du bot</label>
       <div class="cols">
@@ -6990,16 +7141,16 @@ textarea{min-height:80px;resize:vertical}
     </div>
   </div>
 
-  <button class="sbtn" id="sbtn" onclick="create()">🚀 Créer mon bot SamaBot</button>
+  <button class="sbtn" id="sbtn" onclick="create()">Créer mon assistant</button>
 
   <div class="res" id="res">
-    <div class="rt">🎉 Votre bot est prêt !</div>
-    <div class="ri"><div class="rl">🔗 Lien chat</div><div class="rv" id="r-chat"></div><button class="cp" onclick="cp('r-chat')">📋 Copier</button></div>
-    <div class="ri"><div class="rl">📊 Dashboard</div><div class="rv" id="r-dash"></div><button class="cp" onclick="cp('r-dash')">📋 Copier</button></div>
-    <div class="ri"><div class="rl">📦 Widget site</div><div class="rv" id="r-widget"></div><button class="cp" onclick="cp('r-widget')">📋 Copier</button></div>
+    <div class="rt">Votre assistant est prêt</div>
+    <div class="ri"><div class="rl">Lien de discussion</div><div class="rv" id="r-chat"></div><button class="cp" onclick="cp('r-chat')">Copier</button></div>
+    <div class="ri"><div class="rl">Tableau de bord</div><div class="rv" id="r-dash"></div><button class="cp" onclick="cp('r-dash')">Copier</button></div>
+    <div class="ri"><div class="rl">Code à coller sur votre site</div><div class="rv" id="r-widget"></div><button class="cp" onclick="cp('r-widget')">Copier</button></div>
     <div class="rbtns">
-      <a class="rb rb-g" id="r-link" href="#" target="_blank">💬 Tester →</a>
-      <a class="rb rb-o" id="r-dlink" href="#" target="_blank">📊 Dashboard →</a>
+      <a class="rb rb-g" id="r-link" href="#" target="_blank">Tester l'assistant</a>
+      <a class="rb rb-o" id="r-dlink" href="#" target="_blank">Ouvrir le tableau de bord</a>
     </div>
   </div>
 </div>
@@ -7036,7 +7187,7 @@ async function uploadCatImg(input){
       if(d.url){
         preview.src=d.url;preview.classList.add('show');
         input.dataset.url=d.url;
-        btn.innerHTML='✅ Photo<input type="file" accept="image/*" onchange="uploadCatImg(this)"/>';
+        btn.innerHTML='Photo ajoutée<input type="file" accept="image/*" onchange="uploadCatImg(this)"/>';
       }
     }catch(e){alert('Erreur upload image');}
     btn.style.opacity='1';
@@ -7087,12 +7238,12 @@ async function uploadLogo(input){
 
 function cp(id){
   var t=document.getElementById(id).textContent;
-  navigator.clipboard.writeText(t).then(()=>alert('✅ Copié!')).catch(()=>{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ Copié!');});
+  navigator.clipboard.writeText(t).then(()=>alert('Copié')).catch(()=>{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ Copié!');});
 }
 
 async function create(){
   var nom=document.getElementById('nom').value.trim();
-  if(!nom){alert('⚠️ Entrez le nom de votre business');return;}
+  if(!nom){alert('Entrez le nom de votre établissement');return;}
   var btn=document.getElementById('sbtn');btn.textContent='⏳ Création...';btn.disabled=true;
   try{
     var r=await fetch('/bot/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -7126,9 +7277,9 @@ async function create(){
       document.getElementById('r-dlink').href=d.dashUrl;
       document.getElementById('res').classList.add('show');
       document.getElementById('res').scrollIntoView({behavior:'smooth'});
-    }else alert('❌ '+(d.error||'Erreur'));
-  }catch(e){alert('❌ Erreur réseau');}
-  btn.textContent='🚀 Créer mon bot SamaBot';btn.disabled=false;
+    }else alert(d.error||'Une erreur est survenue');
+  }catch(e){alert('Erreur réseau. Vérifiez votre connexion.');}
+  btn.textContent='Créer mon assistant';btn.disabled=false;
 }
 </script>
 </body>
