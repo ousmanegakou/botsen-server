@@ -9573,6 +9573,55 @@ label{display:block;font-size:13px;font-weight:700;color:#0a1a0f;margin-bottom:6
 .checkbox-row input{width:auto;margin:0;flex-shrink:0;margin-top:3px}
 .checkbox-row label{font-size:13px;cursor:pointer;color:#1c1917;font-weight:500}
 .checkbox-row label a{color:#06C167}
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM — parcours d'accueil
+   Neutres froids, accent vert réservé aux états sélectionnés.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --o-bg:#FFFFFF; --o-sunken:#F8F9FA; --o-hover:#F1F3F4; --o-active:#E8EAED;
+  --o-tx1:#1A1D1F; --o-tx2:#5F6368; --o-tx3:#8A9099;
+  --o-line:#E8EAED; --o-line2:#DADCE0;
+  --o-brand:#06A85A; --o-brand-tx:#04713C; --o-brand-tint:#EDF9F2;
+  --o-ez:cubic-bezier(.2,0,0,1);
+}
+body{background:var(--o-sunken);color:var(--o-tx1)}
+h1,h2,h3{color:var(--o-tx1);font-weight:600;letter-spacing:-.025em}
+.card,.step,.panel{background:var(--o-bg);border:1px solid var(--o-line);border-radius:12px;box-shadow:none}
+label{font-size:12.5px;font-weight:500;color:var(--o-tx2)}
+input,select,textarea{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx1);font-size:14px;padding:10px 12px;
+  transition:border-color 150ms var(--o-ez),box-shadow 150ms var(--o-ez);
+}
+input:focus,select:focus,textarea:focus{border-color:var(--o-brand);box-shadow:0 0 0 3px rgba(6,168,90,.12);outline:none}
+input::placeholder,textarea::placeholder{color:var(--o-tx3)}
+.btn{border-radius:8px;font-size:14.5px;font-weight:500;transition:all 150ms var(--o-ez)}
+.btn-primary{background:var(--o-tx1);color:#fff;border:1px solid var(--o-tx1)}
+.btn-primary:hover{background:#000}
+.btn-primary:disabled{opacity:.45}
+.btn-secondary,.btn-ghost{background:var(--o-bg);color:var(--o-tx1);border:1px solid var(--o-line2)}
+.btn-secondary:hover,.btn-ghost:hover{background:var(--o-hover)}
+.toggle-btn{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx2);font-weight:450;transition:all 150ms var(--o-ez);
+}
+.toggle-btn:hover{background:var(--o-hover)}
+.toggle-btn.active,.toggle-btn.sel{background:var(--o-brand-tint);border-color:var(--o-brand);color:var(--o-brand-tx);font-weight:550}
+.feature-pill{
+  background:var(--o-brand-tint);color:var(--o-brand-tx);border:1px solid #C6EAD8;
+  border-radius:999px;font-size:12.5px;font-weight:550;
+}
+.success-emoji{color:var(--o-brand);margin-bottom:14px}
+.success-card{background:var(--o-sunken);border:1px solid var(--o-line);border-radius:8px;color:var(--o-tx1)}
+.success-card strong{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--o-tx3);font-weight:600;margin-bottom:5px}
+.progress,.progress-bar-bg{background:var(--o-active);border-radius:999px}
+.progress-bar,.progress-fill{background:var(--o-brand);border-radius:999px}
+.btn-remove{
+  background:var(--o-bg);border:1px solid var(--o-line2);border-radius:6px;
+  color:var(--o-tx3);font-size:13px;line-height:1;
+}
+.btn-remove:hover{background:var(--o-hover);color:#D93025;border-color:#D93025}
 </style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="wizard">
@@ -9637,18 +9686,18 @@ label{display:block;font-size:13px;font-weight:700;color:#0a1a0f;margin-bottom:6
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" onclick="goStep(3)">← Retour</button>
-<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>🚀 Créer mon bot</button>
+<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>Créer mon assistant</button>
 </div>
 </div>
 
 <div class="step" id="step-5">
 <div class="success">
-<div class="success-emoji">🎉</div>
+<div class="success-emoji"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
 <h2>Ton bot est <span style="color:#06C167">live</span> !</h2>
 <p>Bienvenue dans SamaBot. Tu as 3 jours pour tester gratuitement, sans carte bancaire.</p>
-<div class="success-card"><strong>🌐 URL de ton bot</strong><span id="bot-url"></span></div>
-<div class="success-card"><strong>📊 Tableau de bord</strong><span id="dashboard-url"></span></div>
-<div class="success-card"><strong>📝 Code embed (à coller sur ton site)</strong><span id="embed-code"></span></div>
+<div class="success-card"><strong>Lien de votre assistant</strong><span id="bot-url"></span></div>
+<div class="success-card"><strong>Tableau de bord</strong><span id="dashboard-url"></span></div>
+<div class="success-card"><strong>Code à coller sur votre site</strong><span id="embed-code"></span></div>
 <div style="margin-top:24px">
 <span class="feature-pill">✓ Bot créé</span>
 <span class="feature-pill">✓ Trial 3 jours</span>
@@ -9736,18 +9785,18 @@ async function createBot(){
       body: JSON.stringify(state)
     });
     const data = await r.json();
-    if(!r.ok || !data.success){ alert('Erreur: '+(data.error||'inconnu')); btn.disabled = false; btn.textContent = '🚀 Créer mon bot'; return; }
+    if(!r.ok || !data.success){ alert('Erreur: '+(data.error||'inconnu')); btn.disabled = false; btn.textContent = 'Créer mon assistant'; return; }
     document.getElementById('bot-url').textContent = data.bot_url;
     document.getElementById('dashboard-url').textContent = data.dashboard_url;
     document.getElementById('embed-code').textContent = data.embed_code;
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.getElementById('step-5').classList.add('active');
     document.getElementById('progress-bar').style.width = '100%';
-    document.getElementById('step-counter').textContent = '✅ Terminé';
+    document.getElementById('step-counter').textContent = 'Terminé';
   } catch(e){
     alert('Erreur réseau: '+e.message);
     btn.disabled = false;
-    btn.textContent = '🚀 Créer mon bot';
+    btn.textContent = 'Créer mon assistant';
   }
 }
 </script></body></html>`);
@@ -11206,6 +11255,55 @@ label .req{color:#dc2626}
 .checkbox-row input{width:auto;margin:0;flex-shrink:0;margin-top:3px}
 .checkbox-row label{font-size:13px;cursor:pointer;color:#1c1917;font-weight:500}
 .checkbox-row label a{color:#06C167}
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM — parcours d'accueil
+   Neutres froids, accent vert réservé aux états sélectionnés.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --o-bg:#FFFFFF; --o-sunken:#F8F9FA; --o-hover:#F1F3F4; --o-active:#E8EAED;
+  --o-tx1:#1A1D1F; --o-tx2:#5F6368; --o-tx3:#8A9099;
+  --o-line:#E8EAED; --o-line2:#DADCE0;
+  --o-brand:#06A85A; --o-brand-tx:#04713C; --o-brand-tint:#EDF9F2;
+  --o-ez:cubic-bezier(.2,0,0,1);
+}
+body{background:var(--o-sunken);color:var(--o-tx1)}
+h1,h2,h3{color:var(--o-tx1);font-weight:600;letter-spacing:-.025em}
+.card,.step,.panel{background:var(--o-bg);border:1px solid var(--o-line);border-radius:12px;box-shadow:none}
+label{font-size:12.5px;font-weight:500;color:var(--o-tx2)}
+input,select,textarea{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx1);font-size:14px;padding:10px 12px;
+  transition:border-color 150ms var(--o-ez),box-shadow 150ms var(--o-ez);
+}
+input:focus,select:focus,textarea:focus{border-color:var(--o-brand);box-shadow:0 0 0 3px rgba(6,168,90,.12);outline:none}
+input::placeholder,textarea::placeholder{color:var(--o-tx3)}
+.btn{border-radius:8px;font-size:14.5px;font-weight:500;transition:all 150ms var(--o-ez)}
+.btn-primary{background:var(--o-tx1);color:#fff;border:1px solid var(--o-tx1)}
+.btn-primary:hover{background:#000}
+.btn-primary:disabled{opacity:.45}
+.btn-secondary,.btn-ghost{background:var(--o-bg);color:var(--o-tx1);border:1px solid var(--o-line2)}
+.btn-secondary:hover,.btn-ghost:hover{background:var(--o-hover)}
+.toggle-btn{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx2);font-weight:450;transition:all 150ms var(--o-ez);
+}
+.toggle-btn:hover{background:var(--o-hover)}
+.toggle-btn.active,.toggle-btn.sel{background:var(--o-brand-tint);border-color:var(--o-brand);color:var(--o-brand-tx);font-weight:550}
+.feature-pill{
+  background:var(--o-brand-tint);color:var(--o-brand-tx);border:1px solid #C6EAD8;
+  border-radius:999px;font-size:12.5px;font-weight:550;
+}
+.success-emoji{color:var(--o-brand);margin-bottom:14px}
+.success-card{background:var(--o-sunken);border:1px solid var(--o-line);border-radius:8px;color:var(--o-tx1)}
+.success-card strong{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--o-tx3);font-weight:600;margin-bottom:5px}
+.progress,.progress-bar-bg{background:var(--o-active);border-radius:999px}
+.progress-bar,.progress-fill{background:var(--o-brand);border-radius:999px}
+.btn-remove{
+  background:var(--o-bg);border:1px solid var(--o-line2);border-radius:6px;
+  color:var(--o-tx3);font-size:13px;line-height:1;
+}
+.btn-remove:hover{background:var(--o-hover);color:#D93025;border-color:#D93025}
 @media(max-width:600px){
   .niche-grid{grid-template-columns:1fr}
   .row-2col{grid-template-columns:1fr}
@@ -11262,7 +11360,7 @@ label .req{color:#dc2626}
 <div class="catalogue-list" id="catalogue-list"></div>
 <button class="btn-add" onclick="addCatalogueItem()">+ Ajouter un <span id="cat-singular">item</span></button>
 <div style="margin-top:24px">
-<label>🎨 Couleur du bot</label>
+<label>Couleur de l'assistant</label>
 <div class="color-row" id="color-row">
 <div class="color-swatch selected" data-color="#06C167" style="background:#06C167"></div>
 <div class="color-swatch" data-color="#3b82f6" style="background:#3b82f6"></div>
@@ -11289,18 +11387,18 @@ label .req{color:#dc2626}
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" onclick="goStep(4)">← Retour</button>
-<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>🚀 Créer mon bot</button>
+<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>Créer mon assistant</button>
 </div>
 </div>
 
 <div class="step" id="step-6">
 <div class="success">
-<div class="success-emoji">🎉</div>
+<div class="success-emoji"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
 <h2>Ton bot est <span class="accent">live</span> !</h2>
 <p>Bienvenue dans SamaBot. 3 jours d'essai gratuit, sans carte bancaire.</p>
-<div class="success-card"><strong>🌐 URL de ton bot</strong><span id="bot-url"></span></div>
-<div class="success-card"><strong>📊 Tableau de bord</strong><span id="dashboard-url"></span></div>
-<div class="success-card"><strong>📝 Code embed</strong><span id="embed-code"></span></div>
+<div class="success-card"><strong>Lien de votre assistant</strong><span id="bot-url"></span></div>
+<div class="success-card"><strong>Tableau de bord</strong><span id="dashboard-url"></span></div>
+<div class="success-card"><strong>Code à coller sur votre site</strong><span id="embed-code"></span></div>
 <div style="margin-top:24px"><div id="success-pills"></div></div>
 <div class="btn-row" style="margin-top:24px;justify-content:center">
 <button class="btn btn-primary" onclick="goToBot()">→ Tester mon bot</button>
@@ -11442,7 +11540,7 @@ function renderCatalogue() {
     '<div class="catalogue-item">' +
     '<input type="text" placeholder="' + currentTemplate.placeholder_item + '" value="' + (item.nom || '') + '" onchange="updateCatalogueItem(' + idx + ', \\'nom\\', this.value)">' +
     '<input type="text" placeholder="' + currentTemplate.placeholder_price + '" value="' + (item.prix || '') + '" onchange="updateCatalogueItem(' + idx + ', \\'prix\\', this.value)">' +
-    '<button class="btn-remove" type="button" onclick="removeCatalogueItem(' + idx + ')">🗑</button>' +
+    '<button class="btn-remove" type="button" onclick="removeCatalogueItem(' + idx + ')" aria-label="Retirer">✕</button>' +
     '</div>'
   ).join('');
 }
@@ -11483,13 +11581,13 @@ function goStep(n) {
   if (n === 5) {
     const t = currentTemplate;
     let html = '<strong>' + t.icon + ' ' + t.label + '</strong>: ' + state.business_name + '<br>';
-    html += '📍 ' + state.ville;
-    if (state.telephone_pro) html += ' · 📱 ' + state.telephone_pro;
-    html += '<br>🎨 Couleur ' + state.color;
-    html += '<br>🧠 Skills auto: ' + t.skills_auto.join(', ');
+    html += state.ville;
+    if (state.telephone_pro) html += ' · ' + state.telephone_pro;
+    html += '<br>Couleur ' + state.color;
+    html += '<br>Compétences automatiques : ' + t.skills_auto.join(', ');
     const validCat = state.catalogue_items.filter(i => i.nom);
     if (validCat.length > 0) {
-      html += '<br>📋 ' + validCat.length + ' ' + t.catalogue_label.toLowerCase() + ' configurés';
+      html += '<br>' + validCat.length + ' ' + t.catalogue_label.toLowerCase() + ' configurés';
     }
     document.getElementById('preview').innerHTML = html;
   }
@@ -11527,7 +11625,7 @@ async function createBot() {
     if (!r.ok || !data.success) {
       alert('Erreur: ' + (data.error || 'inconnue'));
       btn.disabled = false;
-      btn.textContent = '🚀 Créer mon bot';
+      btn.textContent = 'Créer mon assistant';
       return;
     }
     document.getElementById('bot-url').textContent = data.bot_url;
@@ -11544,13 +11642,13 @@ async function createBot() {
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.getElementById('step-6').classList.add('active');
     document.getElementById('progress-bar').style.width = '100%';
-    document.getElementById('step-counter').textContent = '✅ Terminé';
+    document.getElementById('step-counter').textContent = 'Terminé';
     
     window.__BOT_URL = data.bot_url;
   } catch(e) {
     alert('Erreur réseau: ' + e.message);
     btn.disabled = false;
-    btn.textContent = '🚀 Créer mon bot';
+    btn.textContent = 'Créer mon assistant';
   }
 }
 
