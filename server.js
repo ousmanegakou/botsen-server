@@ -1356,7 +1356,7 @@ app.post('/promos/:botId/unique', async (req, res) => {
     };
     const out = await db.insert('promos', data);
     // Envoyer le code au client par WhatsApp si tel valide
-    if (client_tel && CONFIG.WASENDER_API_KEY) {
+    if (client_tel && WASENDER_ENABLED && CONFIG.WASENDER_API_KEY) {
       const botNom = bots?.[0]?.nom || 'Notre service';
       const reduc = reduction_type === 'pct' ? `${reduction_value}%` : `${parseInt(reduction_value).toLocaleString('fr-FR')} FCFA`;
       const msg = `🎁 *${botNom}* — Code promo personnel\n\nVotre code: *${code}*\nRéduction: *${reduc}*\n${expire_at?`⏰ Valide jusqu'au ${new Date(expire_at).toLocaleDateString('fr-FR')}\n`:''}${description?`\n${description}\n`:''}\nUtilisez-le lors de votre prochaine commande! Jërëjëf 🙏`;
@@ -2080,7 +2080,7 @@ app.post('/broadcast/send', async (req, res) => {
     for (const conv of convs) {
       try {
         // Envoie via WhatsApp si numéro disponible
-        if (conv.client_tel && CONFIG.WASENDER_API_KEY) {
+        if (conv.client_tel && WASENDER_ENABLED && CONFIG.WASENDER_API_KEY) {
           const waMsg = `📣 *${bot.nom}*\n\n${message}`;
           const ok = await sendWhatsApp(conv.client_tel, waMsg);
           if (ok) sent++;
@@ -2901,10 +2901,22 @@ async function sendEmail(to, subject, html) {
   }
 }
 
-// Envoie un vrai message WhatsApp via WaSenderAPI
+// Envoi WhatsApp — désactivé par défaut, voir WASENDER_ENABLED ci-dessous
+// ─── ENVOI WHATSAPP ──────────────────────────────────────────
+// Mode manuel par défaut : aucun envoi automatique n'est effectué.
+// Le serveur journalise un lien wa.me prêt à cliquer, et l'email
+// de notification part normalement.
+// Pour réactiver l'envoi automatique un jour, il suffit de définir
+// la variable d'environnement WASENDER_ENABLED=true.
+const WASENDER_ENABLED = String(process.env.WASENDER_ENABLED || '').toLowerCase() === 'true';
+
 async function sendWhatsApp(to, message) {
+  if (!WASENDER_ENABLED) {
+    console.log(`WhatsApp manuel → ${to} : ${whatsappNotifUrl(to, message)}`);
+    return false;
+  }
   if (!CONFIG.WASENDER_API_KEY) {
-    console.log(`📱 WhatsApp simulé (pas de WASENDER_API_KEY) → ${to}: ${message.substring(0,60)}...`);
+    console.log(`WhatsApp non configuré (WASENDER_API_KEY absente) → ${to}`);
     return false;
   }
   try {
@@ -8997,7 +9009,7 @@ app.get('/health', async (req, res) => {
     checks.db_latency_ms = Date.now() - t1;
   } catch(e) { checks.database = false; }
   checks.openai = !!CONFIG.OPENAI_API_KEY;
-  checks.wasender = !!CONFIG.WASENDER_API_KEY;
+  checks.wasender = WASENDER_ENABLED && !!CONFIG.WASENDER_API_KEY;
   const allOk = checks.server && checks.database && checks.openai;
   res.status(allOk ? 200 : 503).json({
     status: allOk ? 'healthy' : 'degraded',
@@ -9016,14 +9028,15 @@ app.get('/status', async (req, res) => {
   const uptime = Math.floor((Date.now() - SERVER_START) / 1000);
   const uptime_h = Math.floor(uptime/3600);
   const uptime_d = Math.floor(uptime_h/24);
-  const checks = { db: false, db_ms: 0, openai: !!CONFIG.OPENAI_API_KEY, wasender: !!CONFIG.WASENDER_API_KEY };
+  const checks = { db: false, db_ms: 0, openai: !!CONFIG.OPENAI_API_KEY, wasender: WASENDER_ENABLED && !!CONFIG.WASENDER_API_KEY };
   try {
     const t1 = Date.now();
     const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/bots?select=id&limit=1`, { headers: { 'apikey': CONFIG.SUPABASE_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}` }});
     checks.db = r.ok;
     checks.db_ms = Date.now() - t1;
   } catch(e) {}
-  const allUp = checks.db && checks.openai && checks.wasender;
+  // WhatsApp est en mode manuel : son absence ne dégrade pas le service.
+  const allUp = checks.db && checks.openai;
   const errRate = HEALTH_STATS.requests > 0 ? ((HEALTH_STATS.errors/HEALTH_STATS.requests)*100).toFixed(2) : '0.00';
   res.send(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SamaBot Status</title><style>
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;color:#0a1a0f;padding:40px 20px;line-height:1.5}
@@ -9055,7 +9068,7 @@ app.get('/status', async (req, res) => {
 <div class="grid">
 <div class="card"><h3>Database<span class="badge ${checks.db?'ok':'ko'}">${checks.db?'OK':'DOWN'}</span></h3><div class="val">${checks.db?checks.db_ms+'ms':'N/A'}</div><div class="sub">Supabase (PostgreSQL)</div></div>
 <div class="card"><h3>OpenAI IA<span class="badge ${checks.openai?'ok':'ko'}">${checks.openai?'OK':'KO'}</span></h3><div class="val">${checks.openai?'Active':'Down'}</div><div class="sub">GPT-4o-mini</div></div>
-<div class="card"><h3>WhatsApp<span class="badge ${checks.wasender?'ok':'ko'}">${checks.wasender?'OK':'KO'}</span></h3><div class="val">${checks.wasender?'Active':'Down'}</div><div class="sub">WaSenderAPI</div></div>
+<div class="card"><h3>WhatsApp<span class="badge ${checks.wasender?'ok':''}">${checks.wasender?'Auto':'Manuel'}</span></h3><div class="val">${checks.wasender?'Envoi automatique':'Envoi manuel'}</div><div class="sub">${checks.wasender?'Passerelle active':'Notifications par email, liens à envoyer à la main'}</div></div>
 <div class="card"><h3>API Server<span class="badge ok">OK</span></h3><div class="val">${uptime_d}j ${uptime_h%24}h</div><div class="sub">Uptime</div></div>
 </div>
 <div class="metrics">
